@@ -42,4 +42,4 @@ Siga estas etapas para configurar o ambiente de desenvolvimento:
 
 ## ✒️ Autores
 
-- **Jhow Mello** - _Trabalho Inicial_ - [jhowmello](https://github.com/jhowmello)
+- **João M. Gregorio** - _Trabalho Inicial_ - [jhowmello](https://github.com/jhowmello)
