@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "Bash(json-server --watch db.json --host 0.0.0.0 --port 3000)",
+      "Bash(npx expo *)",
+      "Bash(npx tsc *)",
+      "Bash(npx json-server *)",
+      "Bash(netstat -ano)",
+      "Bash(awk '{print $5}')",
+      "Bash(xargs -I{} taskkill //PID {} //F)",
+      "Bash(curl -s \"http://localhost:3000/tecnicos?email=joao.silva@safestep.com&senha=123456\")",
+      "Bash(cd /tmp)",
+      "Bash(python3 -)",
+      "Bash(python -c \"print\\('test'\\)\")",
+      "Bash(python3 -c \"print\\('test'\\)\")",
+      "Bash(py -c \"print\\('test'\\)\")",
+      "PowerShell(python -c \"print\\('test'\\)\")",
+      "PowerShell(& \"C:\\\\Users\\\\jhowm\\\\AppData\\\\Local\\\\Microsoft\\\\WindowsApps\\\\python.exe\" \"C:\\\\Users\\\\jhowm\\\\AppData\\\\Local\\\\Temp\\\\secret_msg.py\")"
+    ]
+  }
+}
