@@ -36,9 +36,9 @@ npm run test:e2e:report
 | ID | Caso de Teste | Evidência |
 |---|---|---|
 | TC01 | Página de login exibe título, logo e badges NR-10 e NR-35 | `TC01-login-pagina-inicial.png` |
-| TC02 | Login com campos vazios exibe alerta de validação | `TC02-login-campos-vazios.png` |
-| TC03 | Login com credenciais inválidas exibe "Acesso negado" | `TC03-login-credenciais-invalidas.png` |
-| TC04 | Login com credenciais válidas navega para a tela principal | `TC04-login-sucesso-home.png` |
+| TC02 | Login com campos vazios não navega — permanece na tela de login | `TC02-login-campos-vazios.png` |
+| TC03 | Login com credenciais inválidas não navega — permanece na tela de login | `TC03-login-credenciais-invalidas.png` |
+| TC04 | Login com credenciais válidas navega para a tela de Ordens | `TC04-login-sucesso-tela-ordens.png` |
 
 ### 02-ordens-servico.spec.ts — Ordens de Serviço
 
@@ -53,8 +53,8 @@ npm run test:e2e:report
 
 | ID | Caso de Teste | Evidência |
 |---|---|---|
-| TC09 | Botão FAB abre tela de criação de ordem | `TC09-tela-criar-ordem.png` |
-| TC10 | Validação: salvar sem descrição exibe alerta | `TC10-criar-ordem-sem-descricao.png` |
+| TC09 | Tela de criação exibe campos Descrição, Local, Prioridade, Normas e Data Limite | `TC09-tela-criar-ordem.png` |
+| TC10 | Salvar sem preencher campos mantém usuário na tela de criação | `TC10-criar-ordem-validacao.png` |
 | TC11 | Seleção de prioridade "Alta" é destacada visualmente | `TC11-criar-ordem-prioridade-alta.png` |
 | TC12 | Seleção de normas NR-10 e NR-35 marca ambas | `TC12-criar-ordem-normas-selecionadas.png` |
 
@@ -62,9 +62,9 @@ npm run test:e2e:report
 
 | ID | Caso de Teste | Evidência |
 |---|---|---|
-| TC13 | Tela de checklist exibe barra de progresso e itens obrigatórios | `TC13-checklist-tela-inicial.png` |
+| TC13 | Checklist exibe barra de progresso em 0% ao abrir | `TC13-checklist-barra-progresso.png` |
 | TC14 | Marcar item no checklist atualiza porcentagem de progresso | `TC14-checklist-item-marcado.png` |
-| TC15 | Tentar concluir checklist sem itens obrigatórios exibe alerta | `TC15-checklist-alerta-obrigatorios.png` |
+| TC15 | Concluir sem itens obrigatórios mantém usuário no checklist | `TC15-checklist-validacao-obrigatorios.png` |
 
 ---
 
