@@ -9,7 +9,9 @@
       "Bash(git restore *)",
       "Bash(git commit -m ' *)",
       "Bash(cd /e/projetos/SafeStep/SafeStep && find e2e -type f | sort)",
-      "Read(//e/e/projetos/SafeStep/SafeStep/**)"
+      "Read(//e/e/projetos/SafeStep/SafeStep/**)",
+      "Bash(git ls-remote *)",
+      "Bash(git commit --amend -m ' *)"
     ]
   }
 }
