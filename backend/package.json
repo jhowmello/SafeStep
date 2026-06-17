@@ -1,0 +1,12 @@
+{
+  "name": "safestep-backend",
+  "version": "1.0.0",
+  "description": "JSON Server - API REST do SafeStep",
+  "scripts": {
+    "start": "json-server --watch db.json --port 3000",
+    "start:network": "json-server --watch db.json --host 0.0.0.0 --port 3000"
+  },
+  "dependencies": {
+    "json-server": "^0.17.4"
+  }
+}

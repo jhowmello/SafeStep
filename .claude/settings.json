@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Path \"e:\\\\projetos\\\\SafeStep\" -Force)",
+      "Bash(Select-Object Name, PSIsContainer)",
+      "Bash(git -C \"e:\\\\projetos\\\\SafeStep\" log --oneline)",
+      "Bash(cat /tmp/beu96qj4q.output 2>/dev/null || cat \"C:\\\\Users\\\\jhowm\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\e--projetos-SafeStep\\\\716a9e6c-d558-45c6-d2af-8e4480d22705\\\\tasks\\\\beu96qj4q.output\" 2>/dev/null || echo \"waiting...\")",
+      "Read(//tmp/**)"
+    ]
+  }
+}

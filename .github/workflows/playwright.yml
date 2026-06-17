@@ -1,0 +1,63 @@
+name: Testes E2E com Playwright
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  test-e2e:
+    name: Playwright E2E Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout do repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: SafeStep/package-lock.json
+
+      - name: Instalar dependências do frontend
+        working-directory: SafeStep
+        run: npm ci
+
+      - name: Instalar browsers do Playwright
+        working-directory: SafeStep
+        run: npx playwright install --with-deps chromium
+
+      - name: Iniciar backend (json-server)
+        working-directory: backend
+        run: |
+          npm ci
+          npm start &
+          sleep 5
+
+      - name: Executar testes E2E
+        working-directory: SafeStep
+        run: npm run test:e2e
+        env:
+          CI: true
+
+      - name: Upload de evidências (screenshots)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-evidencias
+          path: |
+            SafeStep/e2e/screenshots/
+            SafeStep/test-results/
+          retention-days: 30
+
+      - name: Upload do relatório HTML
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-relatorio-html
+          path: SafeStep/playwright-report/
+          retention-days: 30

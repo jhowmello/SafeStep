@@ -1,0 +1,17 @@
+{
+  "tecnicos": [
+    {
+      "id": 1,
+      "nome": "Nome do Técnico",
+      "matricula": "TEC000",
+      "email": "tecnico@empresa.com",
+      "senha": "<HASH_BCRYPT_DA_SENHA>",
+      "cargo": "Eletricista"
+    }
+  ],
+  "epis": [],
+  "ordensServico": [],
+  "checklists": [],
+  "checklistItens": [],
+  "logs": []
+}
