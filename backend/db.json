@@ -5,24 +5,24 @@
       "nome": "João Silva",
       "matricula": "TEC123",
       "email": "joao.silva@safestep.com",
-      "senha": "123456",
-      "cargo": "Eletricista"
+      "cargo": "Eletricista",
+      "senhaHash": "scrypt$65536$8$1$4790a1860200f64d9174e16a1a20e6a8$a62136a9bfd57e6d6b57ed51d1b6861d2619bab1b4345086f47e3871be2ea101aa713bbd9de7283a76708355940c369c4bbb0477c9961e8247639ac7fa0f9cb0"
     },
     {
       "id": 2,
       "nome": "Maria Souza",
       "matricula": "TEC456",
       "email": "maria.souza@safestep.com",
-      "senha": "123456",
-      "cargo": "Instaladora de Fibra"
+      "cargo": "Instaladora de Fibra",
+      "senhaHash": "scrypt$65536$8$1$ba5efbce297170565718e1c6033d477d$e31658c86a220727f5f8752daa24407068898e0dbaf14a3e9423d880294c5a04e818dc64e9efce5ef09c80069e4aa24c354d5e5d660741851125ae6883d25001"
     },
     {
       "id": 3,
       "nome": "Carlos Mendes",
       "matricula": "TEC789",
       "email": "carlos.mendes@safestep.com",
-      "senha": "123456",
-      "cargo": "Técnico de Manutenção"
+      "cargo": "Técnico de Manutenção",
+      "senhaHash": "scrypt$65536$8$1$121ed74a420e53b2d54c8cc6dda06cbc$fdcb83722f2014bdfb01b1c12af319231439d2f1d1b174454fbbabf38c7ea833423242dd5d7c8c172a160f44170781c33ba68db17926146e13816fe3c34e7dc1"
     }
   ],
   "epis": [
@@ -65,49 +65,8 @@
   ],
   "ordensServico": [
     {
-      "id": 2,
-      "descricao": "Manutenção em quadro elétrico",
-      "local": "Subestação Centro - Bloco B",
-      "tecnicoId": 2,
-      "status": "concluida",
-      "prioridade": "alta",
-      "normas": [
-        "NR-10"
-      ],
-      "episObrigatorios": [
-        1,
-        2,
-        4,
-        5,
-        6
-      ],
-      "dataCriacao": "2026-04-19",
-      "dataLimite": "2026-04-20"
-    },
-    {
-      "id": 3,
-      "descricao": "Trabalho em altura - Torre de telecomunicações",
-      "local": "Torre Setor Norte",
-      "tecnicoId": 3,
-      "status": "concluida",
-      "prioridade": "critica",
-      "normas": [
-        "NR-35",
-        "NR-10"
-      ],
-      "episObrigatorios": [
-        1,
-        2,
-        3,
-        4,
-        5
-      ],
-      "dataCriacao": "2026-04-19",
-      "dataLimite": "2026-04-21"
-    },
-    {
-      "descricao": "Instalação de fibra optica",
-      "local": "rau primeiro de junho, numero 1133",
+      "descricao": "instalação de redes eletrica",
+      "local": "Rua principal",
       "tecnicoId": 1,
       "status": "concluida",
       "prioridade": "alta",
@@ -116,24 +75,24 @@
         "NR-35"
       ],
       "episObrigatorios": [],
-      "dataCriacao": "2026-04-22",
-      "dataLimite": "2026-04-22",
-      "id": 5
+      "dataCriacao": "2026-06-18",
+      "dataLimite": "2026-06-11",
+      "id": 1
     },
     {
-      "descricao": "reparo da rede eletrica",
-      "local": "rua qualquer",
+      "descricao": "instalação de fibra optica",
+      "local": "rua de baixo",
       "tecnicoId": 1,
-      "status": "concluida",
+      "status": "pendente",
       "prioridade": "alta",
       "normas": [
         "NR-10",
         "NR-35"
       ],
       "episObrigatorios": [],
-      "dataCriacao": "2026-04-30",
-      "dataLimite": "2023-29-04",
-      "id": 6
+      "dataCriacao": "2026-06-18",
+      "dataLimite": "2026-06-19",
+      "id": 2
     }
   ],
   "checklists": [
@@ -234,6 +193,23 @@
       ],
       "observacoes": "",
       "id": 6
+    },
+    {
+      "ordemServicoId": 1,
+      "tecnicoId": 1,
+      "dataRealizacao": "2026-06-18",
+      "aprovado": true,
+      "itensConfirmados": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "observacoes": "",
+      "id": 7
     }
   ],
   "checklistItens": [
@@ -328,6 +304,14 @@
       "resultado": "aprovado",
       "timestamp": "2026-04-30T00:10:49.389Z",
       "id": 6
+    },
+    {
+      "ordemServicoId": 1,
+      "tecnicoId": 1,
+      "acao": "checklist_concluido",
+      "resultado": "aprovado",
+      "timestamp": "2026-06-18T00:42:11.425Z",
+      "id": 7
     }
   ]
 }

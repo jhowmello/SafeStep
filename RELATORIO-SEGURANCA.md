@@ -13,14 +13,14 @@ Este relatório documenta a avaliação de segurança do projeto SafeStep com ba
 | # | Categoria OWASP | Severidade | Status |
 |---|---|---|---|
 | A01 | Broken Access Control | 🔴 Crítico | ⚠️ Parcialmente Resolvido |
-| A02 | Cryptographic Failures | 🔴 Crítico | ⚠️ Parcialmente Resolvido |
-| A03 | Injection | 🟡 Baixo | ✅ Não Aplicável / Baixo Risco |
-| A04 | Insecure Design | 🔴 Crítico | ⚠️ Identificado / Escopo Acadêmico |
+| A02 | Cryptographic Failures | 🔴 Crítico | ✅ Resolvido (cadastro/login) |
+| A03 | Injection | 🟡 Baixo | ✅ Mitigado / Baixo Risco |
+| A04 | Insecure Design | 🔴 Crítico | ⚠️ Parcialmente Resolvido |
 | A05 | Security Misconfiguration | 🟠 Alto | ✅ Resolvido |
 | A06 | Vulnerable and Outdated Components | 🟡 Médio | ⚠️ Identificado |
-| A07 | Identification and Authentication Failures | 🔴 Crítico | ⚠️ Parcialmente Resolvido |
+| A07 | Identification and Authentication Failures | 🔴 Crítico | ✅ Resolvido (cadastro/login) |
 | A08 | Software and Data Integrity Failures | 🔴 Crítico | ⚠️ Identificado / Escopo Acadêmico |
-| A09 | Security Logging and Monitoring Failures | 🟠 Alto | ⚠️ Identificado |
+| A09 | Security Logging and Monitoring Failures | 🟠 Alto | ⚠️ Parcialmente Resolvido |
 | A10 | Server-Side Request Forgery (SSRF) | 🟢 N/A | ✅ Não Aplicável |
 
 ---
@@ -44,6 +44,9 @@ Nos arquivos `src/screens/CriarOrdemScreen.tsx` (linha 73) e `src/screens/Checkl
 **3. Logout sem invalidação de sessão**
 O botão "Sair" em `src/screens/PerfilScreen.tsx` apenas navega para a tela de Login (`navigation.replace('Login')`), sem limpar tokens ou estado de sessão.
 
+**4. Escrita direta em `/tecnicos` (mitigado nesta entrega)**
+Antes desta correção, qualquer cliente podia `POST/PUT/PATCH/DELETE /tecnicos` diretamente pelo router genérico do json-server, contornando qualquer validação de cadastro.
+
 ### Status: ⚠️ Parcialmente Resolvido
 
 | Item | Status | Ação Tomada |
@@ -51,6 +54,8 @@ O botão "Sair" em `src/screens/PerfilScreen.tsx` apenas navega para a tela de L
 | Middleware JWT no backend | ❌ Pendente | Requer refatoração do backend (fora do escopo do bimestre) |
 | tecnicoId dinâmico | ❌ Pendente | Depende de implementar JWT primeiro |
 | Logout com limpeza de estado | ❌ Pendente | Depende de implementar JWT primeiro |
+| Bloqueio de escrita direta em `/tecnicos` | ✅ Resolvido | `backend/server.js` (`bloquearEscritaDiretaTecnicos`) retorna 405 para `POST/PUT/PATCH/DELETE` em `/tecnicos`; cadastro só é possível via `/auth/register` |
+| Resposta de `/tecnicos` sem campos sensíveis | ✅ Resolvido | `backend/server.js` (`interceptarRespostaTecnicos`) remove `senha`/`senhaHash` de toda resposta da rota |
 
 **Recomendação para produção:** Implementar autenticação JWT com middleware em todas as rotas do backend. O `tecnicoId` deve ser extraído do token no servidor, nunca aceito do cliente.
 
@@ -75,17 +80,19 @@ O fluxo de login em `src/screens/LoginScreen.tsx` busca `/tecnicos` (que retorna
 **3. Comunicação sem HTTPS**
 A URL base configurada usa protocolo `http://`, transmitindo dados sensíveis em texto claro.
 
-### Status: ⚠️ Parcialmente Resolvido
+### Status: ✅ Resolvido (cadastro/login)
 
 | Item | Status | Ação Tomada |
 |---|---|---|
-| Hash de senhas (bcrypt) | ❌ Pendente | json-server não suporta middleware de hash nativamente |
-| Endpoint de login no servidor | ❌ Pendente | Requer backend real (Express/Node) |
-| HTTPS em produção | ❌ Pendente | Aplicável somente em ambiente de produção |
+| Hash de senhas | ✅ Resolvido | `backend/lib/passwordHash.js` usa `crypto.scrypt` (nativo do Node, sem dependência externa) com salt aleatório de 16 bytes por usuário (N=2^16, r=8, p=1, 64 bytes de saída), no formato `scrypt$N$r$p$salt$hash`. Não há mais campo `senha` em texto puro em nenhuma resposta ou registro novo. |
+| Migração de senhas legadas | ✅ Resolvido | `backend/server.js` (`migrarSenhasEmTextoPuro`) converte, na inicialização do servidor, qualquer `senha` em texto puro remanescente em `db.json` para `senhaHash`, removendo o campo original. Idempotente. |
+| Comparação de senha em tempo constante | ✅ Resolvido | `verifyPassword` em `passwordHash.js` usa `crypto.timingSafeEqual` e um hash dummy fixo quando o usuário não existe, evitando enumeração de contas por tempo de resposta. |
+| Endpoint de login no servidor | ✅ Resolvido | `POST /auth/login` em `backend/server.js`: a comparação de senha agora ocorre inteiramente no servidor; o cliente nunca mais busca a lista de técnicos com senhas (`SafeStep/src/services/auth.ts`, `loginTecnico`). |
+| HTTPS em produção | ❌ Pendente | Aplicável somente em ambiente de produção, fora do escopo de um servidor de desenvolvimento local |
 | Senhas removidas do código-fonte | ✅ Resolvido | `db.json` removido do rastreamento git via `.gitignore` atualizado; arquivo `db.example.json` criado com instruções |
 
 **Arquivo adicionado ao `.gitignore`:** `backend/.gitignore` atualizado.
-**Arquivo de referência criado:** `backend/db.example.json` com senha como `<HASH_BCRYPT_DA_SENHA>`.
+**Arquivo de referência criado:** `backend/db.example.json` com o campo `senhaHash` (gerado automaticamente pelo backend, nunca definido manualmente).
 
 ---
 
@@ -102,7 +109,10 @@ Os campos `descricao` e `local` em `CriarOrdemScreen.tsx` não são sanitizados 
 **2. Prototype Pollution via json-server**
 A versão `0.17.4` do json-server aceita queries como `?__proto__[field]=value`, o que pode causar poluição de protótipo JavaScript.
 
-### Status: ✅ Baixo Risco / Não Aplicável
+**3. Cadastro de usuários sem validação (mitigado nesta entrega)**
+Antes desta correção, não havia validação de formato/tamanho para nome, matrícula, e-mail ou cargo em nenhuma rota.
+
+### Status: ✅ Mitigado / Baixo Risco
 
 | Item | Status | Observação |
 |---|---|---|
@@ -110,6 +120,7 @@ A versão `0.17.4` do json-server aceita queries como `?__proto__[field]=value`,
 | XSS (versão mobile) | ✅ Mitigado | React Native não renderiza HTML diretamente |
 | XSS (versão web) | ⚠️ Atenção | Se dados forem renderizados em contexto HTML no Expo Web, sanitização é necessária |
 | Prototype Pollution | ⚠️ Atenção | Inerente ao json-server 0.17.x — mitigado na produção substituindo por backend real |
+| Validação/sanitização em `/auth/register` | ✅ Resolvido | `backend/lib/sanitize.js` valida formato e tamanho de nome (`\p{L}` Unicode), matrícula, e-mail e cargo, remove caracteres de controle e limita o payload a 15kb (`express.json({ limit: '15kb' })` em `server.js`) |
 
 ---
 
@@ -120,8 +131,8 @@ Falhas na arquitetura e design do sistema que não podem ser corrigidas apenas c
 
 ### Vulnerabilidades Encontradas
 
-**1. Autenticação inteiramente no cliente**
-O design atual coloca toda a lógica de autenticação no frontend. Não é possível corrigir essa falha sem redesenhar o backend. Em qualquer sistema real, o servidor deve validar credenciais e emitir tokens.
+**1. Autenticação inteiramente no cliente (mitigado para login/cadastro)**
+O design anterior colocava toda a lógica de autenticação no frontend (comparação de senha em texto puro feita no app). Login e cadastro agora são decididos exclusivamente pelo servidor (`POST /auth/login`, `POST /auth/register`); sessão/token (JWT) ainda não foi implementada — apenas a decisão de "credenciais válidas ou não" migrou para o backend.
 
 **2. Perfil hardcoded — sem contexto de sessão**
 `src/screens/PerfilScreen.tsx` exibe dados fixos no código (`nome: 'João Silva'`), não refletindo o usuário autenticado. Qualquer pessoa logada vê o perfil do mesmo técnico.
@@ -129,15 +140,16 @@ O design atual coloca toda a lógica de autenticação no frontend. Não é poss
 **3. Conformidade NR-10/NR-35 forjável**
 Como o endpoint `/checklists` não exige autenticação, qualquer pessoa pode registrar um checklist aprovado via requisição HTTP direta, sem realizar nenhum item de segurança. Isso compromete o propósito central do aplicativo.
 
-### Status: ⚠️ Identificado — Escopo Acadêmico
+### Status: ⚠️ Parcialmente Resolvido
 
 | Item | Status | Observação |
 |---|---|---|
-| Redesign da arquitetura de autenticação | ❌ Fora do escopo | Requer backend com Express/Node + JWT (projeto futuro) |
+| Decisão de autenticação no servidor (login/cadastro) | ✅ Resolvido | `backend/server.js` (`/auth/login`, `/auth/register`); cliente não compara mais senhas localmente |
+| Sessão com token (JWT) | ❌ Fora do escopo | Requer backend com Express/Node + JWT (projeto futuro); hoje o app apenas navega para `HomeTabs` após um 200 de `/auth/login`, sem token |
 | Perfil baseado em sessão real | ❌ Fora do escopo | Depende de JWT implementado |
 | Proteção da integridade do checklist | ❌ Fora do escopo | Requer autenticação no backend |
 
-**Nota acadêmica:** As vulnerabilidades foram identificadas e documentadas. A correção completa exige refatoração de arquitetura além do escopo do bimestre.
+**Nota acadêmica:** As vulnerabilidades remanescentes foram identificadas e documentadas. A correção completa (sessão com token, JWT, contexto de usuário autenticado) exige refatoração de arquitetura além do escopo desta entrega.
 
 ---
 
@@ -160,6 +172,9 @@ Configurações inseguras em servidores, frameworks, banco de dados ou infraestr
 **4. Arquivo `.env` sem proteção**
 O `.gitignore` não incluía arquivos `.env`, permitindo commit acidental de variáveis de ambiente.
 
+**5. Ausência de headers de segurança HTTP (mitigado nesta entrega)**
+O servidor não enviava headers como `X-Content-Type-Options`, `X-Frame-Options` ou `Referrer-Policy`, e expunha o header `X-Powered-By: Express`, facilitando fingerprinting da stack.
+
 ### Status: ✅ Resolvido
 
 | Item | Status | Ação Tomada |
@@ -169,6 +184,8 @@ O `.gitignore` não incluía arquivos `.env`, permitindo commit acidental de var
 | `.env` protegido no git | ✅ Resolvido | `SafeStep/.gitignore` atualizado com `.env` e `.env.production` |
 | Backend não exposto em 0.0.0.0 | ✅ Resolvido | `backend/package.json`: `start` agora usa `localhost`; `start:network` criado para uso explícito em rede |
 | `db.json` fora do git | ✅ Resolvido | `backend/.gitignore` atualizado; `db.example.json` criado como referência |
+| Headers de segurança HTTP | ✅ Resolvido | `backend/server.js` (`securityHeaders`) define `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, `Cross-Origin-Resource-Policy: same-origin`; `X-Powered-By` desabilitado via `server.disable('x-powered-by')` |
+| Limite de tamanho de payload | ✅ Resolvido | `express.json({ limit: '15kb' })` restrito às rotas `/auth`, mitigando payloads excessivos |
 
 **Commits realizados:**
 - `src/services/api.ts` — uso de variável de ambiente
@@ -222,24 +239,28 @@ Falhas na verificação de identidade, autenticação e gerenciamento de sessõe
 
 | Requisito de Segurança | Status no Projeto |
 |---|---|
-| Hash de senhas (bcrypt/argon2) | ❌ Ausente — senhas em texto plano |
-| Autenticação no servidor | ❌ Ausente — autenticação feita no cliente |
+| Hash de senhas (scrypt) | ✅ Implementado — ver A02 |
+| Autenticação no servidor | ✅ Implementado — `POST /auth/login` decide no backend |
+| Política de complexidade de senha | ✅ Implementado — ver abaixo |
+| Bloqueio/limitação após tentativas falhas | ✅ Implementado — rate limiting em `/auth/login` e `/auth/register` |
+| Mensagens de erro genéricas (anti-enumeração de contas) | ✅ Implementado |
 | Token de sessão (JWT/OAuth) | ❌ Ausente |
-| Bloqueio após tentativas falhas | ❌ Ausente |
 | Timeout de sessão | ❌ Ausente |
-| Complexidade de senha exigida | ❌ Ausente |
 | Invalidação de sessão no logout | ❌ Ausente |
 | Autenticação multifator (MFA) | ❌ Ausente |
 
-### Status: ⚠️ Parcialmente Resolvido
+### Status: ✅ Resolvido (cadastro/login) / ⚠️ Sessão pendente
 
 | Item | Status | Ação Tomada |
 |---|---|---|
-| Validação de campos no cliente | ✅ Implementado | Login exige e-mail e senha não vazios (`LoginScreen.tsx:31-33`) |
-| Hash de senhas e JWT | ❌ Pendente | Requer refatoração do backend |
-| Bloqueio por tentativas | ❌ Pendente | Requer middleware no backend |
+| Validação de campos no cliente | ✅ Implementado | Login exige e-mail e senha não vazios; cadastro valida todos os campos antes de enviar (`CadastroScreen.tsx`) |
+| Hash de senhas | ✅ Resolvido | `backend/lib/passwordHash.js` — ver A02 |
+| Política de senha (OWASP ASVS V2.1) | ✅ Resolvido | `backend/lib/passwordPolicy.js`: mínimo 10 / máximo 128 caracteres, no mínimo 3 das 4 classes de caractere (minúscula/maiúscula/número/símbolo), bloqueio de senhas comuns (`SENHAS_COMUNS`) e de senhas que contenham e-mail, nome ou matrícula do usuário. Validado tanto no cliente (`CadastroScreen.tsx`, checklist visual) quanto, de forma autoritativa, no servidor. |
+| Bloqueio por tentativas (rate limiting) | ✅ Resolvido | `backend/lib/rateLimit.js`: limite de 8 tentativas de cadastro por IP/15min, 30 tentativas de login por IP/15min e 8 tentativas de login por conta/15min, com resposta 429 |
+| Mensagens de erro genéricas no login | ✅ Resolvido | `POST /auth/login` retorna a mesma mensagem ("E-mail ou senha invalidos.") tanto para conta inexistente quanto para senha errada, com tempo de resposta normalizado via `crypto.timingSafeEqual` + hash dummy, mitigando enumeração de contas |
+| Sessão/token (JWT) | ❌ Pendente | Fora do escopo desta entrega — ver A04 |
 
-**Nota:** A validação de formulário no cliente é uma boa prática, mas não substitui validação no servidor. Todas as correções críticas desta categoria dependem de um backend com autenticação real.
+**Nota:** A validação de formulário no cliente é uma boa prática, mas não substitui validação no servidor — todas as regras acima são reaplicadas e decididas de forma autoritativa em `backend/server.js`, independentemente do que o cliente envie.
 
 ---
 
@@ -278,24 +299,24 @@ Ausência de logs, monitoramento e alertas adequados para detectar, escalar e re
 
 ### Vulnerabilidades Encontradas
 
-**1. Tentativas de login falhas não são registradas**
-O fluxo de autenticação em `LoginScreen.tsx` não gera nenhum log quando credenciais inválidas são usadas. Ataques de força bruta passam completamente despercebidos.
+**1. Tentativas de login falhas não eram registradas (mitigado nesta entrega)**
+O fluxo anterior de autenticação em `LoginScreen.tsx` não gerava nenhum log quando credenciais inválidas eram usadas, e a verificação ocorria inteiramente no cliente — o servidor não tinha visibilidade alguma sobre tentativas de login.
 
 **2. Logs de auditoria sem integridade**
-Os registros em `/logs` estão na mesma base de dados desprotegida. Não há separação entre logs de segurança e dados da aplicação.
+Os registros em `/logs` estão na mesma base de dados desprotegida. Não há separação entre logs de segurança e dados da aplicação, e os registros continuam mutáveis (ver A08).
 
 **3. Nenhum alerta ou monitoramento configurado**
 Não há integração com serviços de monitoramento (ex: Sentry, Datadog) para detectar erros ou padrões suspeitos em tempo real.
 
-### Status: ⚠️ Identificado
+### Status: ⚠️ Parcialmente Resolvido
 
 | Item | Status | Observação |
 |---|---|---|
-| Log de tentativas de login | ❌ Pendente | Requer backend com autenticação |
-| Integridade dos logs | ❌ Pendente | Requer banco de dados protegido |
+| Log de tentativas de login/cadastro | ✅ Resolvido | `backend/server.js` (`registrarLog`) grava em `/logs` os eventos `cadastro_realizado`, `cadastro_rejeitado`, `login_sucesso` e `login_falhou`, incluindo IP e (quando aplicável) e-mail/`tecnicoId` — nunca a senha |
+| Integridade dos logs | ❌ Pendente | Requer banco de dados protegido / logs append-only |
 | Monitoramento e alertas | ❌ Pendente | Aplicável em produção |
 
-**O que existe atualmente:** A aplicação registra eventos de conclusão de checklist via `POST /logs`. Apesar de não ser seguro, demonstra a consciência da necessidade de rastreabilidade.
+**O que existe atualmente:** Além dos eventos de checklist, a aplicação agora registra tentativas de autenticação e cadastro (sucesso e falha) via `registrarLog`, dando visibilidade básica sobre tentativas de força bruta — ainda sem alertas automáticos.
 
 ---
 
@@ -327,35 +348,45 @@ O backend atual (json-server) não realiza nenhuma requisição HTTP a partir de
 | `SafeStep/.gitignore` | Adicionado `.env`, `.env.production` à lista de exclusões | A05 |
 | `backend/package.json` | Removido `--host 0.0.0.0` do script padrão; criado `start:network` separado | A05 |
 | `backend/.gitignore` | Adicionado `.env` à lista de exclusões | A05, A02 |
-| `backend/db.example.json` | Criado template do banco sem dados sensíveis, com instrução de hash | A02 |
+| `backend/db.example.json` | Atualizado para refletir o campo `senhaHash` gerado pelo backend | A02 |
+| `backend/lib/passwordHash.js` (novo) | Hash de senha com `crypto.scrypt`, salt aleatório, comparação em tempo constante | A02, A07 |
+| `backend/lib/passwordPolicy.js` (novo) | Política de senha OWASP ASVS V2.1 (tamanho, classes de caractere, bloqueio de senhas comuns/dados pessoais) | A07 |
+| `backend/lib/sanitize.js` (novo) | Validação e sanitização de nome, matrícula, e-mail e cargo no cadastro | A03 |
+| `backend/lib/rateLimit.js` (novo) | Rate limiting em memória para `/auth/register` e `/auth/login` | A07 |
+| `backend/server.js` (novo) | Endpoints `/auth/register` e `/auth/login`, headers de segurança, bloqueio de escrita direta em `/tecnicos`, remoção de campos sensíveis nas respostas, migração de senhas legadas, logs de autenticação | A01, A02, A03, A04, A05, A07, A09 |
+| `SafeStep/src/services/auth.ts` (novo) | Cliente HTTP para `/auth/login` e `/auth/register` com timeout; substitui a busca de `/tecnicos` para autenticação | A02, A04, A07 |
+| `SafeStep/src/screens/CadastroScreen.tsx` (novo) | Tela de auto-cadastro com checklist visual de política de senha | A07 |
+| `SafeStep/src/screens/LoginScreen.tsx` | Login passou a chamar `loginTecnico()` (servidor decide); adicionado link "Criar conta" | A02, A04, A07 |
+| `SafeStep/src/navigation/AppNavigator.tsx` | Adicionada rota `Cadastro` | A07 |
+| `SafeStep/src/types/index.ts` | Removido campo `senha` do tipo `Tecnico` usado pelo cliente | A02 |
 
 ### Vulnerabilidades Identificadas Mas Não Resolvidas (Escopo Acadêmico)
 
 As vulnerabilidades abaixo foram **identificadas e documentadas**, mas sua correção exige refatoração arquitetural do backend (implementação de Node/Express + banco de dados relacional + JWT) que está além do escopo do bimestre atual:
 
-- A01: Autorização por rotas no backend
-- A02: Hash de senhas + HTTPS
-- A04: Redesign da arquitetura de autenticação
-- A07: JWT, bloqueio de conta, timeout de sessão
+- A01: Autorização por rotas restantes do backend (epis, ordensServico, checklists, logs) e `tecnicoId` dinâmico
+- A02: HTTPS em produção
+- A04: Sessão com token (JWT), perfil baseado em sessão real, integridade do checklist
+- A07: Sessão/token, timeout de sessão, invalidação no logout, MFA
 - A08: Imutabilidade de logs, validação de schema
-- A09: Monitoramento e alertas
+- A09: Integridade dos logs, monitoramento e alertas
 
 ---
 
 ## Conclusão
 
-O projeto SafeStep, em seu estado atual como aplicativo acadêmico com backend de prototipagem (`json-server`), apresenta vulnerabilidades críticas que o tornam **inadequado para uso em produção**. As 6 correções implementadas resolvem os problemas de configuração mais simples e demonstram o conhecimento das boas práticas.
+O projeto SafeStep, em seu estado atual como aplicativo acadêmico com backend de prototipagem (`json-server`), ainda apresenta vulnerabilidades relevantes (principalmente em torno de autorização por rota e ausência de sessão/token) que o tornam **inadequado para uso em produção sem evolução adicional**. Nesta entrega, o fluxo de cadastro e login de técnicos foi reforçado com critérios de segurança alinhados ao OWASP (hash de senha com scrypt, política de senha, rate limiting, validação/sanitização de entrada, headers de segurança, mensagens de erro genéricas e log de tentativas), resolvendo a maior parte das categorias A02 e A07 e mitigando parcialmente A01, A03, A04, A05 e A09.
 
-Para uma versão de produção, seria necessário:
+Para uma versão de produção, ainda seria necessário:
 
-1. **Backend real** (Node.js + Express ou similar) com autenticação JWT
-2. **Banco de dados** com controle de acesso, senhas hasheadas com bcrypt
-3. **HTTPS** obrigatório em todas as comunicações
-4. **Middleware de autorização** em todas as rotas
-5. **Sistema de logs** imutável e separado dos dados da aplicação
-6. **Monitoramento** com alertas para eventos de segurança
+1. **Sessão com token** (JWT ou similar) e middleware de autorização em todas as rotas do backend
+2. **HTTPS** obrigatório em todas as comunicações
+3. **Banco de dados** com controle de acesso e validação de schema (substituindo o json-server)
+4. **Sistema de logs** imutável e separado dos dados da aplicação
+5. **Monitoramento** com alertas para eventos de segurança
+6. **Autenticação multifator (MFA)** para contas de técnicos
 
-A identificação e documentação dessas vulnerabilidades, seguindo o padrão OWASP Top 10, é o primeiro passo do processo de melhoria contínua de segurança de qualquer sistema de software.
+A identificação, correção e documentação contínua dessas vulnerabilidades, seguindo o padrão OWASP Top 10, é parte do processo de melhoria contínua de segurança de qualquer sistema de software.
 
 ---
 

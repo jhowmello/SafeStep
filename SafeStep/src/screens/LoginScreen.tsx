@@ -14,8 +14,8 @@ import {
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
-import { RootStackParamList, Tecnico } from '../types';
-import BASE_URL from '../services/api';
+import { RootStackParamList } from '../types';
+import { loginTecnico } from '../services/auth';
 
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Login'>;
@@ -35,21 +35,13 @@ export default function LoginScreen({ navigation }: Props) {
 
     setLoading(true);
     try {
-      const resposta = await fetch(`${BASE_URL}/tecnicos`);
-      if (!resposta.ok) throw new Error('Erro ao buscar técnicos');
-      const tecnicos: Tecnico[] = await resposta.json();
-      const tecnico = tecnicos.find(
-        (t) => t.email === email.trim() && t.senha === senha
-      );
-
-      if (tecnico) {
-        navigation.replace('HomeTabs');
-      } else {
-        Alert.alert('Acesso negado', 'E-mail ou senha inválidos.');
-      }
+      // A autenticação ocorre inteiramente no servidor (hash + rate limiting);
+      // o cliente nunca mais busca a lista de técnicos para comparar senha.
+      await loginTecnico(email.trim(), senha);
+      navigation.replace('HomeTabs');
     } catch (err) {
-      console.error('Erro no login:', err);
-      Alert.alert('Erro de conexão', 'Não foi possível conectar ao servidor.\nVerifique o IP e tente novamente.');
+      const mensagem = err instanceof Error ? err.message : 'Não foi possível conectar ao servidor.';
+      Alert.alert('Acesso negado', mensagem);
     } finally {
       setLoading(false);
     }
@@ -141,6 +133,14 @@ export default function LoginScreen({ navigation }: Props) {
                 <Text style={styles.buttonText}>Entrar</Text>
               </View>
             )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            testID="btn-criar-conta"
+            style={styles.criarContaBtn}
+            onPress={() => navigation.navigate('Cadastro')}
+          >
+            <Text style={styles.criarContaText}>Não tem conta? <Text style={styles.criarContaTextDestaque}>Criar conta</Text></Text>
           </TouchableOpacity>
         </View>
 
@@ -281,6 +281,19 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+
+  criarContaBtn: {
+    marginTop: 18,
+    alignItems: 'center',
+  },
+  criarContaText: {
+    color: '#555',
+    fontSize: 14,
+  },
+  criarContaTextDestaque: {
+    color: '#F5A623',
+    fontWeight: '700',
   },
 
   footer: {

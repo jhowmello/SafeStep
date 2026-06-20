@@ -5,17 +5,20 @@ import LoginScreen from '../screens/LoginScreen';
 
 // Mock de navegação
 const mockReplace = jest.fn();
-const navigation = { replace: mockReplace } as any;
+const mockNavigate = jest.fn();
+const navigation = { replace: mockReplace, navigate: mockNavigate } as any;
 
 // Mock do fetch global
 global.fetch = jest.fn();
 
-const mockTecnicos = [
-  { id: 1, nome: 'João Silva', matricula: 'TEC123', email: 'joao@test.com', senha: '123456', cargo: 'Eletricista' },
-];
+const mockTecnico = { id: 1, nome: 'João Silva', matricula: 'TEC123', email: 'joao@test.com', cargo: 'Eletricista' };
 
 function fetchOk(data: unknown) {
   return Promise.resolve({ ok: true, json: () => Promise.resolve(data) } as Response);
+}
+
+function fetchErro(status: number, data: unknown) {
+  return Promise.resolve({ ok: false, status, json: () => Promise.resolve(data) } as Response);
 }
 
 function fetchFail() {
@@ -43,11 +46,11 @@ describe('LoginScreen', () => {
   });
 
   it('navega para HomeTabs com credenciais corretas', async () => {
-    (global.fetch as jest.Mock).mockReturnValueOnce(fetchOk(mockTecnicos));
+    (global.fetch as jest.Mock).mockReturnValueOnce(fetchOk(mockTecnico));
 
     const { getByPlaceholderText, getByText } = render(<LoginScreen navigation={navigation} />);
     fireEvent.changeText(getByPlaceholderText('seu@email.com'), 'joao@test.com');
-    fireEvent.changeText(getByPlaceholderText('••••••'), '123456');
+    fireEvent.changeText(getByPlaceholderText('••••••'), 'MinhaSenh@123');
     fireEvent.press(getByText('Entrar'));
 
     await waitFor(() => {
@@ -56,7 +59,9 @@ describe('LoginScreen', () => {
   });
 
   it('exibe "Acesso negado" com credenciais erradas', async () => {
-    (global.fetch as jest.Mock).mockReturnValueOnce(fetchOk(mockTecnicos));
+    (global.fetch as jest.Mock).mockReturnValueOnce(
+      fetchErro(401, { erro: 'E-mail ou senha invalidos.' })
+    );
 
     const { getByPlaceholderText, getByText } = render(<LoginScreen navigation={navigation} />);
     fireEvent.changeText(getByPlaceholderText('seu@email.com'), 'errado@test.com');
@@ -64,7 +69,7 @@ describe('LoginScreen', () => {
     fireEvent.press(getByText('Entrar'));
 
     await waitFor(() => {
-      expect(Alert.alert).toHaveBeenCalledWith('Acesso negado', 'E-mail ou senha inválidos.');
+      expect(Alert.alert).toHaveBeenCalledWith('Acesso negado', 'E-mail ou senha invalidos.');
     });
   });
 
@@ -73,24 +78,33 @@ describe('LoginScreen', () => {
 
     const { getByPlaceholderText, getByText } = render(<LoginScreen navigation={navigation} />);
     fireEvent.changeText(getByPlaceholderText('seu@email.com'), 'joao@test.com');
-    fireEvent.changeText(getByPlaceholderText('••••••'), '123456');
+    fireEvent.changeText(getByPlaceholderText('••••••'), 'MinhaSenh@123');
     fireEvent.press(getByText('Entrar'));
 
     await waitFor(() => {
-      expect(Alert.alert).toHaveBeenCalledWith('Erro de conexão', expect.any(String));
+      expect(Alert.alert).toHaveBeenCalledWith('Acesso negado', expect.any(String));
     });
   });
 
-  it('faz GET em /tecnicos ao tentar logar', async () => {
-    (global.fetch as jest.Mock).mockReturnValueOnce(fetchOk(mockTecnicos));
+  it('faz POST em /auth/login com e-mail e senha', async () => {
+    (global.fetch as jest.Mock).mockReturnValueOnce(fetchOk(mockTecnico));
 
     const { getByPlaceholderText, getByText } = render(<LoginScreen navigation={navigation} />);
     fireEvent.changeText(getByPlaceholderText('seu@email.com'), 'joao@test.com');
-    fireEvent.changeText(getByPlaceholderText('••••••'), '123456');
+    fireEvent.changeText(getByPlaceholderText('••••••'), 'MinhaSenh@123');
     fireEvent.press(getByText('Entrar'));
 
     await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith(expect.stringContaining('/tecnicos'));
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/auth/login'),
+        expect.objectContaining({ method: 'POST' })
+      );
     });
+  });
+
+  it('navega para a tela de Cadastro ao tocar em "Criar conta"', () => {
+    const { getByTestId } = render(<LoginScreen navigation={navigation} />);
+    fireEvent.press(getByTestId('btn-criar-conta'));
+    expect(mockNavigate).toHaveBeenCalledWith('Cadastro');
   });
 });

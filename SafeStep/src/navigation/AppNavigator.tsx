@@ -6,6 +6,7 @@ import { Text } from 'react-native';
 
 import { RootStackParamList } from '../types';
 import LoginScreen from '../screens/LoginScreen';
+import CadastroScreen from '../screens/CadastroScreen';
 import OrdensServicoScreen from '../screens/OrdensServicoScreen';
 import ChecklistScreen from '../screens/ChecklistScreen';
 import ResultadoScreen from '../screens/ResultadoScreen';
@@ -56,6 +57,11 @@ export default function AppNavigator() {
         <Stack.Screen
           name="Login"
           component={LoginScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="Cadastro"
+          component={CadastroScreen}
           options={{ headerShown: false }}
         />
         <Stack.Screen

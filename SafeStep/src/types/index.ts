@@ -1,9 +1,10 @@
+// O backend nunca retorna a senha (nem o hash) de um técnico nas respostas
+// da API, então o tipo usado pelo cliente não inclui esse campo.
 export interface Tecnico {
   id: number;
   nome: string;
   matricula: string;
   email: string;
-  senha: string;
   cargo: string;
 }
 
@@ -55,6 +56,7 @@ export interface Log {
 
 export type RootStackParamList = {
   Login: undefined;
+  Cadastro: undefined;
   HomeTabs: undefined;
   Checklist: { ordemId: number };
   Resultado: { aprovado: boolean; ordemId: number };

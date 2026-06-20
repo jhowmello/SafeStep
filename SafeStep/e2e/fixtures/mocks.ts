@@ -2,10 +2,14 @@ import { expect, Page } from '@playwright/test';
 
 const BASE = 'http://localhost:3000';
 
+// Senha de teste usada por todos os técnicos mockados (não representa o hash
+// real armazenado pelo backend - o login é simulado via mock de /auth/login).
+const SENHA_TESTE = 'MinhaSenh@123';
+
 export const TECNICOS = [
-  { id: 1, nome: 'João Silva', matricula: 'TEC123', email: 'joao.silva@safestep.com', senha: '123456', cargo: 'Eletricista' },
-  { id: 2, nome: 'Maria Souza', matricula: 'TEC456', email: 'maria.souza@safestep.com', senha: '123456', cargo: 'Instaladora de Fibra' },
-  { id: 3, nome: 'Carlos Mendes', matricula: 'TEC789', email: 'carlos.mendes@safestep.com', senha: '123456', cargo: 'Técnico de Manutenção' },
+  { id: 1, nome: 'João Silva', matricula: 'TEC123', email: 'joao.silva@safestep.com', senha: SENHA_TESTE, cargo: 'Eletricista' },
+  { id: 2, nome: 'Maria Souza', matricula: 'TEC456', email: 'maria.souza@safestep.com', senha: SENHA_TESTE, cargo: 'Instaladora de Fibra' },
+  { id: 3, nome: 'Carlos Mendes', matricula: 'TEC789', email: 'carlos.mendes@safestep.com', senha: SENHA_TESTE, cargo: 'Técnico de Manutenção' },
 ];
 
 export const ORDENS_SERVICO = [
@@ -30,6 +34,22 @@ export async function mockApiRoutes(page: Page) {
   await page.route(`${BASE}/tecnicos`, route =>
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(TECNICOS) })
   );
+  await page.route(`${BASE}/auth/login`, route => {
+    const corpo = JSON.parse(route.request().postData() ?? '{}');
+    const tecnico = TECNICOS.find(
+      t => t.email === corpo.email && t.senha === corpo.senha
+    );
+    if (!tecnico) {
+      return route.fulfill({ status: 401, contentType: 'application/json', body: JSON.stringify({ erro: 'E-mail ou senha invalidos.' }) });
+    }
+    const { senha, ...dadosPublicos } = tecnico;
+    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(dadosPublicos) });
+  });
+  await page.route(`${BASE}/auth/register`, route => {
+    const corpo = JSON.parse(route.request().postData() ?? '{}');
+    const novo = { id: 99, nome: corpo.nome, matricula: corpo.matricula, email: corpo.email, cargo: corpo.cargo };
+    return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify(novo) });
+  });
   await page.route(`${BASE}/ordensServico`, route => {
     if (route.request().method() === 'POST') {
       const nova = { id: 99, status: 'pendente', ...JSON.parse(route.request().postData() ?? '{}') };
